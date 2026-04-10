@@ -30,6 +30,7 @@ class GPTConfig:
     bias: bool = True
 
 
+
 class CausalSelfAttention(nn.Module):
     def __init__(self, config: GPTConfig):
         super().__init__()

@@ -12,7 +12,6 @@ import os
 import time
 import pickle
 from dataclasses import asdict
-
 import numpy as np
 import torch
 
@@ -20,6 +19,12 @@ from model import GPTConfig, GPT
 
 # -----------------------------------------------------------------------------
 # Experiment configuration
+
+
+n_layer_sweep = np.linspace(1, 12, 10, dtype=int) 
+n_head_sweep  = np.array([1, 2, 4, 8, 16, 32, 64, 128])  # all divide 128 ✓
+n_embd_sweep  = (np.linspace(64, 512, 10, dtype=int) // 32 * 32)    
+batch_size_sweep =[1,2,4,8,16,32,64,128,256,512]
 
 # I/O
 OUT_DIR = "out"
