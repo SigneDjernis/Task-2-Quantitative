@@ -8,6 +8,7 @@ Source: https://github.com/karpathy/nanoGPT
 import os
 import pickle
 import torch
+import time
 
 from model import GPT, GPTConfig
 
@@ -68,4 +69,19 @@ def main():
 
 
 if __name__ == "__main__":
+    t0 = time.time()
     main()
+
+    ## DATA WE WANT FOR THE REPORT:
+    # Final training time
+    total_time = time.time() - t0
+
+    # Save results to csv
+    csv_file = "results_prompt.csv"
+    file_exists = os.path.isfile(csv_file)
+
+    # Open in append mode
+    with open(csv_file, "a") as f:
+        if not file_exists:
+            f.write("total_time_seconds,MAX_NEW_TOKENS,PROMPT\n")
+        f.write(f"{total_time:.2f},{MAX_NEW_TOKENS},{PROMPT}\n")

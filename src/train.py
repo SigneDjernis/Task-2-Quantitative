@@ -42,7 +42,7 @@ DEVICE = "cpu"          # If you can, try also seeing consumption when using gpu
 DTYPE = "float32"       
 BATCH_SIZE = 32         # Number of sequences processed in parallel.
 BLOCK_SIZE = 256        # Maximum context length for predictions (e.g. 128 or 256). The longer the block size, the more memory and compute it requires, but it can also lead to better performance.
-MAX_ITERS = 2000        # Total number of training iterations. The more iterations, the better the model can perform, but it also takes more time and energy to train.
+MAX_ITERS = 2        # Total number of training iterations. The more iterations, the better the model can perform, but it also takes more time and energy to train.
 LEARNING_RATE = 3e-4    # the standard starting learning rate, often good enough for a first try
 WEIGHT_DECAY = 0.1      # L2 Regularization
 GRAD_CLIP = 1.0         # To prevent exploding gradients
@@ -171,6 +171,23 @@ def main():
             print(f"iter {it:5d} | loss {loss.item():.4f}")
 
     print("Training completed.")
+    
+    ## DATA WE WANT FOR THE REPORT:
+    # Final training time
+    total_time = time.time() - t0
+
+    # Get number of parameters
+    model.get_num_params()
+
+    # Save results to csv
+    csv_file = "results_train.csv"
+    file_exists = os.path.isfile(csv_file)
+
+    # Open in append mode
+    with open(csv_file, "a") as f:
+        if not file_exists:
+            f.write("total_time_seconds,N_LAYER,N_HEAD,N_EMBD,BATCH_SIZE,num_params\n")
+        f.write(f"{total_time:.2f},{N_LAYER},{N_HEAD},{N_EMBD},{BATCH_SIZE},{num_params}\n")
 
     # Save final checkpoint
     if SAVE_CHECKPOINT:
