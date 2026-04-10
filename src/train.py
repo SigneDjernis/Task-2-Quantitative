@@ -177,7 +177,7 @@ def main():
     total_time = time.time() - t0
 
     # Get number of parameters
-    model.get_num_params()
+    num_params = model.get_num_params()
 
     # Save results to csv
     csv_file = "results_train.csv"

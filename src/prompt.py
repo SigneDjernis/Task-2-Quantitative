@@ -76,6 +76,9 @@ if __name__ == "__main__":
     # Final training time
     total_time = time.time() - t0
 
+    # Number of tokens in the prompt
+    num_tokens_prompt = len(PROMPT)
+
     # Save results to csv
     csv_file = "results_prompt.csv"
     file_exists = os.path.isfile(csv_file)
@@ -83,5 +86,5 @@ if __name__ == "__main__":
     # Open in append mode
     with open(csv_file, "a") as f:
         if not file_exists:
-            f.write("total_time_seconds,MAX_NEW_TOKENS,PROMPT\n")
-        f.write(f"{total_time:.2f},{MAX_NEW_TOKENS},{PROMPT}\n")
+            f.write("total_time_seconds,MAX_NEW_TOKENS,num_tokens_prompt\n")
+        f.write(f"{total_time:.2f},{MAX_NEW_TOKENS},{num_tokens_prompt}\n")
