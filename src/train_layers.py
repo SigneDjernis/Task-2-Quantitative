@@ -27,6 +27,8 @@ n_head_sweep  = np.array([1, 2, 4, 8, 16, 32, 64, 128])  # all divide 128 ✓
 n_embd_sweep  = (np.linspace(64, 512, 10, dtype=int) // 32 * 32)    
 batch_size_sweep =[1,2,4,8,16,32,64,128,256,512]
 
+
+
 # I/O
 OUT_DIR = "out"
 DATA_DIR = os.path.join("data")
@@ -34,9 +36,34 @@ EVAL_INTERVAL = 200
 EVAL_ITERS = 50
 LOG_INTERVAL = 50
 SAVE_CHECKPOINT = True
-for val in n_layer_sweep:
+def set_seed(seed: int) -> None:
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+def load_meta(data_dir: str):
+    meta_path = os.path.join(data_dir, "meta.pkl")
+    if not os.path.exists(meta_path):
+        return None
+    with open(meta_path, "rb") as f:
+        return pickle.load(f)
+
+def get_batch(split: str, data_dir: str, block_size: int, batch_size: int, device: str):
+    # simple, robust memmap loader
+    bin_path = os.path.join(data_dir, f"{split}.bin")
+    data = np.memmap(bin_path, dtype=np.uint16, mode="r")
+
+    ix = torch.randint(len(data) - block_size - 1, (batch_size,))
+    x = torch.stack([torch.from_numpy((data[i : i + block_size]).astype(np.int64)) for i in ix])
+    y = torch.stack([torch.from_numpy((data[i + 1 : i + 1 + block_size]).astype(np.int64)) for i in ix])
+
+    x = x.to(device)
+    y = y.to(device)
+    return x, y
+
+for val in [64,128,256,512]:
+    print("-------------Model with",val,"batchsize")
     # Model (main tunables)
-    N_LAYER = val
+    N_LAYER = 4
     N_HEAD = 4
     N_EMBD = 128
     DROPOUT = 0.1
@@ -46,41 +73,17 @@ for val in n_layer_sweep:
     SEED = 1
     DEVICE = "cpu"          # If you can, try also seeing consumption when using gpu (change this to 'cuda' if torch.cuda.is_available() else 'cpu')
     DTYPE = "float32"       
-    BATCH_SIZE = 32         # Number of sequences processed in parallel.
+    BATCH_SIZE = val       # Number of sequences processed in parallel.
     BLOCK_SIZE = 256        # Maximum context length for predictions (e.g. 128 or 256). The longer the block size, the more memory and compute it requires, but it can also lead to better performance.
-    MAX_ITERS = 2        # Total number of training iterations. The more iterations, the better the model can perform, but it also takes more time and energy to train.
+    MAX_ITERS = 1000        # Total number of training iterations. The more iterations, the better the model can perform, but it also takes more time and energy to train.
     LEARNING_RATE = 3e-4    # the standard starting learning rate, often good enough for a first try
     WEIGHT_DECAY = 0.1      # L2 Regularization
     GRAD_CLIP = 1.0         # To prevent exploding gradients
 
     # -----------------------------------------------------------------------------
 
-    def set_seed(seed: int) -> None:
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-
-    def load_meta(data_dir: str):
-        meta_path = os.path.join(data_dir, "meta.pkl")
-        if not os.path.exists(meta_path):
-            return None
-        with open(meta_path, "rb") as f:
-            return pickle.load(f)
-
-    def get_batch(split: str, data_dir: str, block_size: int, batch_size: int, device: str):
-        # simple, robust memmap loader
-        bin_path = os.path.join(data_dir, f"{split}.bin")
-        data = np.memmap(bin_path, dtype=np.uint16, mode="r")
-
-        ix = torch.randint(len(data) - block_size - 1, (batch_size,))
-        x = torch.stack([torch.from_numpy((data[i : i + block_size]).astype(np.int64)) for i in ix])
-        y = torch.stack([torch.from_numpy((data[i + 1 : i + 1 + block_size]).astype(np.int64)) for i in ix])
-
-        x = x.to(device)
-        y = y.to(device)
-        return x, y
-
     @torch.no_grad()
-    def estimate_loss(model: GPT, data_dir: str, block_size: int, batch_size: int, device: str, eval_iters: int):
+    def estimate_loss(model: GPT, data_dir: str, block_size: int, batch_size: int, device: str, eval_iters: int):    
         model.eval()
         losses = {}
         for split in ["train", "val"]:
@@ -184,6 +187,7 @@ for val in n_layer_sweep:
         ## DATA WE WANT FOR THE REPORT:
         # Final training time
         total_time = time.time() - t0
+        tracker.stop()
         em_data = tracker._prepare_emissions_data()
 
 
@@ -191,7 +195,7 @@ for val in n_layer_sweep:
         num_params = model.get_num_params()
 
         # Save results to csv
-        csv_file = "results_train.csv"
+        csv_file = "results_train_batch.csv"
         file_exists = os.path.isfile(csv_file)
 
         # Open in append mode
